@@ -590,9 +590,14 @@ dependencies = [
 name = "gmailfiltermanager"
 version = "0.0.1"
 dependencies = [
+ "anyhow",
+ "bon",
  "clap",
  "dirs",
  "oauth2-simple",
+ "reqwest",
+ "serde",
+ "serde_json",
  "tokio",
 ]
 
