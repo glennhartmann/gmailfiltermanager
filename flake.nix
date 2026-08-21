@@ -18,8 +18,8 @@
             lockFile = ./Cargo.lock;
 
             outputHashes = {
-              "oauth2-0.0.3" = "sha256-4aap4FwENrIZdx8mn1olipljbpbv3FnL4hi90eBn2Dw=";
-              "oauth2-simple-0.0.3" = "sha256-D9NuBgvI4SfuXcSAjasiSDwMJDHc1La+LasueJDzq5g=";
+              "oauth2-0.0.4" = "sha256-YVYhPRZFMvshaCgHGf9YO9jMAUAigkoM+OyJQZOPjpo=";
+              "oauth2-simple-0.0.4" = "sha256-zSCRn4LhWOV5+7EP/tVEfvaHClVMUWdRn93t4eL13TQ=";
             };
           };
         };
