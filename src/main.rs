@@ -116,6 +116,7 @@ async fn main() {
         tokens_path: tokens_path.to_str().expect("invalid tokens_path"),
         port: args.listen_port,
         scope: SCOPE,
+        key_paths: None,
     })
     .expect("error in Oauth2Simple::with_cfg()");
     let tokens = oa2
