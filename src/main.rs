@@ -3,12 +3,14 @@ use std::path::PathBuf;
 use gmailfiltermanager::{download, list_local, list_remote, upload};
 
 use clap::{Parser, Subcommand};
-use oauth2_simple::Oauth2Simple;
+use oauth2_simple::{KeyPaths, Oauth2Simple};
 
 const DEFAULT_DIR_NAME: &str = "gmailfiltermanager";
 const DEFAULT_DATA_FILE_NAME: &str = "filters.json";
 const CLIENT_INFO_FILE_NAME: &str = "client_info.json";
 const TOKENS_FILE_NAME: &str = "token.json";
+const PUBLIC_KEY_FILE_NAME: &str = "public_key.pem";
+const PRIVATE_KEY_FILE_NAME: &str = "private_key.pem";
 const SCOPE: &str = "https://www.googleapis.com/auth/gmail.settings.basic";
 
 /// Gmail Filter Manager.
@@ -27,9 +29,12 @@ struct Args {
     #[arg(short, long)]
     config_dir: Option<PathBuf>,
 
+    /// Use [DPoP](https://oauth.net/2/dpop/) for extra security.
+    #[arg(short, long, default_value_t = true, num_args = 0..=1, default_missing_value = "true", require_equals = true)]
+    use_dpop: bool,
+
     #[command(subcommand)]
     command: Command,
-    // TODO: support DPoP
 }
 
 #[derive(Subcommand, Debug)]
@@ -38,7 +43,7 @@ enum Command {
     Download {
         /// If the specified file already exists, this parameter controls whether or not to delete
         /// entries in the file that don't appear in your Gmail account.
-        #[arg(short, long, default_value_t = true)]
+        #[arg(short, long, default_value_t = true, num_args = 0..=1, default_missing_value = "true", require_equals = true)]
         delete_unlisted: bool,
 
         /// The file to write your filters to. If unspecified, this defaults to
@@ -54,17 +59,17 @@ enum Command {
     Upload {
         /// If true, this will cause all the filters in your Gmail account that aren't present in
         /// the local file to be deleted.
-        #[arg(short, long, default_value_t = false)]
+        #[arg(short, long, default_value_t = false, num_args = 0..=1, default_missing_value = "true", require_equals = true)]
         delete_unlisted: bool,
 
         /// If true, ALL filters in the file will be overwritten on the Gmail server. Any data
         /// outside of the Gmail API will be lost.
-        #[arg(short, long, default_value_t = false)]
+        #[arg(short, long, default_value_t = false, num_args = 0..=1, default_missing_value = "true", require_equals = true)]
         force: bool,
 
         /// Only upload filters from the local file which don't exist yet on the Gmail account.
         /// That means that any modifications to existing filters will not be applied.
-        #[arg(short, long, default_value_t = false)]
+        #[arg(short, long, default_value_t = false, num_args = 0..=1, default_missing_value = "true", require_equals = true)]
         only_new: bool,
 
         /// The file with your filters. If unspecified, this defaults to
@@ -107,16 +112,39 @@ async fn main() {
     client_info_path.push(CLIENT_INFO_FILE_NAME);
     let client_info_path = client_info_path;
 
-    let mut tokens_path = config_dir;
+    let mut tokens_path = config_dir.clone();
     tokens_path.push(TOKENS_FILE_NAME);
     let tokens_path = tokens_path;
+
+    let key_paths = if args.use_dpop {
+        let mut public_key_path = config_dir.clone();
+        public_key_path.push(PUBLIC_KEY_FILE_NAME);
+        let public_key_path = public_key_path;
+
+        let mut private_key_path = config_dir;
+        private_key_path.push(PRIVATE_KEY_FILE_NAME);
+        let private_key_path = private_key_path;
+
+        Some(KeyPaths {
+            public_key_path: public_key_path
+                .to_str()
+                .expect("invalid public_key_path")
+                .to_string(),
+            private_key_path: private_key_path
+                .to_str()
+                .expect("invalid private_key_path")
+                .to_string(),
+        })
+    } else {
+        None
+    };
 
     let mut oa2 = Oauth2Simple::with_cfg(oauth2_simple::Cfg {
         client_info_path: client_info_path.to_str().expect("invalid client_info_path"),
         tokens_path: tokens_path.to_str().expect("invalid tokens_path"),
         port: args.listen_port,
         scope: SCOPE,
-        key_paths: None,
+        key_paths,
     })
     .expect("error in Oauth2Simple::with_cfg()");
     let tokens = oa2
